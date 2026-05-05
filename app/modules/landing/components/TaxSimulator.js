@@ -2,9 +2,6 @@
 
 import { useState } from 'react'
 
-const API_KEY = "AIzaSyBhNlnKyw8xOP9_2KKiV6vTwa_OMccIiRI"
-const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${API_KEY}`
-
 export default function TaxSimulator() {
   const [annualIncome, setAnnualIncome] = useState('')
   const [currentInvestments, setCurrentInvestments] = useState('')
@@ -13,30 +10,24 @@ export default function TaxSimulator() {
   const [showResults, setShowResults] = useState(false)
 
   const callGeminiApi = async (prompt) => {
-    const payload = {
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-    }
-    
-    const response = await fetch(API_URL, {
+    const response = await fetch('/api/ai-demo', {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ prompt }),
     })
     
     if (!response.ok) {
-      throw new Error(`API call failed with status: ${response.status}`)
+      const error = await response.json().catch(() => ({}))
+      throw new Error(error.message || `API call failed with status: ${response.status}`)
     }
     
     const result = await response.json()
-    
-    if (result.candidates && result.candidates[0].content && result.candidates[0].content.parts[0]) {
-      return result.candidates[0].content.parts[0].text
-    } else {
-      if (result.candidates && result.candidates[0].finishReason === "SAFETY") {
-        return "I am unable to provide a response to this query. Please try a different topic related to personal finance."
-      }
-      throw new Error("Invalid response structure from API.")
+
+    if (result.success && result.text) {
+      return result.text
     }
+
+    throw new Error(result.message || "Invalid response structure from API.")
   }
 
   const formatResponse = (text) => {
